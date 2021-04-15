@@ -24,6 +24,7 @@ func TestTxManager_WithTransaction(t *testing.T) {
 	repo := newAuthorBookRepository(db)
 
 	t.Run("AcrossRepoTx_Success", func(t *testing.T) {
+		// start TxManager
 		txManager := txmanager.StartTxManager(db)
 
 		// doing transaction, add author & book, and then link the author and book
@@ -71,9 +72,20 @@ func TestTxManager_WithTransaction(t *testing.T) {
 	})
 
 	t.Run("AcrossRepoTxFailed_ThenRollback", func(t *testing.T) {
+		// start TxManager
 		txManager := txmanager.StartTxManager(db)
 		book2 := book{
 			Name: stringPointer("Biology"),
+		}
+
+		// ensure have author1 data
+		var authorCheck author
+		db.Model(&author{}).Find(&authorCheck, "name = ?", author1.Name)
+
+		// save author1 if not have the saved data
+		if authorCheck.Name == nil {
+			err := db.Create(&author1).Error
+			require.NoError(t, err)
 		}
 
 		// doing transaction, add author & book, and then link the author and book
@@ -85,6 +97,7 @@ func TestTxManager_WithTransaction(t *testing.T) {
 				return err
 			}
 
+			// saving author1 again will trigger error unique name, because we set on author name must be unique
 			authorSaved, err := repoAuthor.AddAuthor(ctx, author1)
 
 			if err != nil {
@@ -111,6 +124,7 @@ func TestTxManager_WithTransaction(t *testing.T) {
 	})
 
 	t.Run("Panic_ThenRollback", func(t *testing.T) {
+		// start TxManager
 		txManager := txmanager.StartTxManager(db)
 		book2 := book{
 			Name: stringPointer("Biology"),
@@ -125,6 +139,8 @@ func TestTxManager_WithTransaction(t *testing.T) {
 				return err
 			}
 
+			// test have nil pointer value to book
+			// when get the value from test, it will trigger panic nil pointer
 			var test *book
 			failing := *test
 
