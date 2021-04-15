@@ -37,6 +37,23 @@ func closeDB(t *testing.T, db *gorm.DB) {
 	require.NoError(t, err)
 }
 
+func resetDB(db *gorm.DB) error {
+	models := []interface{}{
+		book{},
+		author{},
+		authorBook{},
+	}
+
+	for _, v := range models {
+		tableName := db.NewScope(v).TableName()
+		err := db.Exec(fmt.Sprintf("TRUNCATE TABLE %s", tableName)).Error
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func getMysqlUrl(dbName string) string {
 	host := os.Getenv("DB_HOST")
 	port := os.Getenv("DB_PORT")

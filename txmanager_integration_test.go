@@ -2,6 +2,7 @@ package txmanager_test
 
 import (
 	"context"
+	"github.com/jinzhu/gorm"
 	"github.com/shortlyst-ai/go-txmanager"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -24,6 +25,12 @@ func TestTxManager_WithTransaction(t *testing.T) {
 	repo := newAuthorBookRepository(db)
 
 	t.Run("AcrossRepoTx_Success", func(t *testing.T) {
+		// reset db after test
+		defer func(db *gorm.DB) {
+			err := resetDB(db)
+			require.NoError(t, err)
+		}(db)
+
 		// start TxManager
 		txManager := txmanager.StartTxManager(db)
 
@@ -72,21 +79,21 @@ func TestTxManager_WithTransaction(t *testing.T) {
 	})
 
 	t.Run("AcrossRepoTxFailed_ThenRollback", func(t *testing.T) {
+		// reset db after test
+		defer func(db *gorm.DB) {
+			err := resetDB(db)
+			require.NoError(t, err)
+		}(db)
+
 		// start TxManager
 		txManager := txmanager.StartTxManager(db)
 		book2 := book{
 			Name: stringPointer("Biology"),
 		}
 
-		// ensure have author1 data
-		var authorCheck author
-		db.Model(&author{}).Find(&authorCheck, "name = ?", author1.Name)
-
-		// save author1 if not have the saved data
-		if authorCheck.Name == nil {
-			err := db.Create(&author1).Error
-			require.NoError(t, err)
-		}
+		// save author1 data first, to trigger error on below tx
+		err := db.Create(&author1).Error
+		require.NoError(t, err)
 
 		// doing transaction, add author & book, and then link the author and book
 		transaction := func(ctx context.Context) error {
@@ -113,7 +120,7 @@ func TestTxManager_WithTransaction(t *testing.T) {
 			return nil
 		}
 
-		err := txManager.WithTransaction(context.Background(), transaction)
+		err = txManager.WithTransaction(context.Background(), transaction)
 		require.Error(t, err)
 
 		// validate data
@@ -124,6 +131,12 @@ func TestTxManager_WithTransaction(t *testing.T) {
 	})
 
 	t.Run("Panic_ThenRollback", func(t *testing.T) {
+		// reset db after test
+		defer func(db *gorm.DB) {
+			err := resetDB(db)
+			require.NoError(t, err)
+		}(db)
+
 		// start TxManager
 		txManager := txmanager.StartTxManager(db)
 		book2 := book{
