@@ -198,7 +198,7 @@ func TestTxManager_WithTransaction(t *testing.T) {
 		}(dbv2)
 
 		// start TxManager
-		txManager := txmanager.StartTxManagerGormV2(dbv2)
+		txManager := txmanager.NewGormTxManager(dbv2)
 
 		// doing transaction, add author & book, and then link the author and book
 		transaction := func(ctx context.Context) error {
@@ -249,7 +249,7 @@ func TestTxManager_WithTransaction(t *testing.T) {
 		}(dbv2)
 
 		// start TxManager
-		txManager := txmanager.StartTxManagerGormV2(dbv2)
+		txManager := txmanager.NewGormTxManager(dbv2)
 		book2 := book{
 			Name: stringPointer("Biology"),
 		}
@@ -301,7 +301,7 @@ func TestTxManager_WithTransaction(t *testing.T) {
 		}(dbv2)
 
 		// start TxManager
-		txManager := txmanager.StartTxManagerGormV2(dbv2)
+		txManager := txmanager.NewGormTxManager(dbv2)
 		book2 := book{
 			Name: stringPointer("Biology"),
 		}

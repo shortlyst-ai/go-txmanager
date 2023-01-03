@@ -33,8 +33,8 @@ func StartTxManager(db *gorm.DB) TxManager {
 	return &GormTxManager{db: db}
 }
 
-// StartTxManager create TxManager with db
-func StartTxManagerGormV2(db *gormv2.DB) TxManagerGormV2 {
+// NewGormTxManager create TxManagerGormV2 with dbv2
+func NewGormTxManager(db *gormv2.DB) TxManagerGormV2 {
 	return &GormV2TxManager{db: db}
 }
 
