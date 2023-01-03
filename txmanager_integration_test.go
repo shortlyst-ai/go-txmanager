@@ -38,7 +38,7 @@ func TestTxManager_WithTransaction(t *testing.T) {
 		}(db)
 
 		// start TxManager
-		txManager := txmanager.StartTxManager(db, nil)
+		txManager := txmanager.StartTxManager(db)
 
 		// doing transaction, add author & book, and then link the author and book
 		transaction := func(ctx context.Context) error {
@@ -92,7 +92,7 @@ func TestTxManager_WithTransaction(t *testing.T) {
 		}(db)
 
 		// start TxManager
-		txManager := txmanager.StartTxManager(db, nil)
+		txManager := txmanager.StartTxManager(db)
 		book2 := book{
 			Name: stringPointer("Biology"),
 		}
@@ -144,7 +144,7 @@ func TestTxManager_WithTransaction(t *testing.T) {
 		}(db)
 
 		// start TxManager
-		txManager := txmanager.StartTxManager(db, nil)
+		txManager := txmanager.StartTxManager(db)
 		book2 := book{
 			Name: stringPointer("Biology"),
 		}
@@ -192,13 +192,13 @@ func TestTxManager_WithTransaction(t *testing.T) {
 
 	t.Run("AcrossRepoV2Tx_Success", func(t *testing.T) {
 		// reset db after test
-		defer func(dbv2 *gormv2.DB) {
-			err := resetDBV2(dbv2)
+		defer func(db *gormv2.DB) {
+			err := resetDBV2(db)
 			require.NoError(t, err)
 		}(dbv2)
 
 		// start TxManager
-		txManager := txmanager.StartTxManager(nil, dbv2)
+		txManager := txmanager.StartTxManagerGormV2(dbv2)
 
 		// doing transaction, add author & book, and then link the author and book
 		transaction := func(ctx context.Context) error {
@@ -220,7 +220,7 @@ func TestTxManager_WithTransaction(t *testing.T) {
 			return nil
 		}
 
-		err := txManager.WithTransactionV2(context.Background(), transaction)
+		err := txManager.WithTransaction(context.Background(), transaction)
 		require.NoError(t, err)
 
 		// validate data
@@ -249,7 +249,7 @@ func TestTxManager_WithTransaction(t *testing.T) {
 		}(dbv2)
 
 		// start TxManager
-		txManager := txmanager.StartTxManager(nil, dbv2)
+		txManager := txmanager.StartTxManagerGormV2(dbv2)
 		book2 := book{
 			Name: stringPointer("Biology"),
 		}
@@ -283,7 +283,7 @@ func TestTxManager_WithTransaction(t *testing.T) {
 			return nil
 		}
 
-		err = txManager.WithTransactionV2(context.Background(), transaction)
+		err = txManager.WithTransaction(context.Background(), transaction)
 		require.Error(t, err)
 
 		// validate data
@@ -301,7 +301,7 @@ func TestTxManager_WithTransaction(t *testing.T) {
 		}(dbv2)
 
 		// start TxManager
-		txManager := txmanager.StartTxManager(nil, dbv2)
+		txManager := txmanager.StartTxManagerGormV2(dbv2)
 		book2 := book{
 			Name: stringPointer("Biology"),
 		}
@@ -337,7 +337,7 @@ func TestTxManager_WithTransaction(t *testing.T) {
 			return nil
 		}
 
-		err := txManager.WithTransactionV2(context.Background(), transaction)
+		err := txManager.WithTransaction(context.Background(), transaction)
 		require.Error(t, err)
 
 		// validate data

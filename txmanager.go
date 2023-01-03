@@ -14,17 +14,28 @@ type TxFn func(ctx context.Context) error
 
 type TxManager interface {
 	WithTransaction(ctx context.Context, txfn TxFn) error
-	WithTransactionV2(ctx context.Context, txfn TxFn) error
+}
+
+type TxManagerGormV2 interface {
+	WithTransaction(ctx context.Context, txfn TxFn) error
 }
 
 type GormTxManager struct {
-	db   *gorm.DB
-	dbv2 *gormv2.DB
+	db *gorm.DB
+}
+
+type GormV2TxManager struct {
+	db *gormv2.DB
 }
 
 // StartTxManager create TxManager with db
-func StartTxManager(db *gorm.DB, dbv2 *gormv2.DB) TxManager {
-	return &GormTxManager{db: db, dbv2: dbv2}
+func StartTxManager(db *gorm.DB) TxManager {
+	return &GormTxManager{db: db}
+}
+
+// StartTxManager create TxManager with db
+func StartTxManagerGormV2(db *gormv2.DB) TxManagerGormV2 {
+	return &GormV2TxManager{db: db}
 }
 
 // WithTransaction creates a new transaction and handles rollback/commit based on the
@@ -52,8 +63,8 @@ func (g *GormTxManager) WithTransaction(parentCtx context.Context, txfn TxFn) (e
 	return err
 }
 
-func (g *GormTxManager) WithTransactionV2(parentCtx context.Context, txfn TxFn) (err error) {
-	tx := g.dbv2.Begin()
+func (g *GormV2TxManager) WithTransaction(parentCtx context.Context, txfn TxFn) (err error) {
+	tx := g.db.Begin()
 	txCtx := setTxConnV2(parentCtx, tx)
 
 	defer func() {
