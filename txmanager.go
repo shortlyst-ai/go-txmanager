@@ -16,10 +16,6 @@ type TxManager interface {
 	WithTransaction(ctx context.Context, txfn TxFn) error
 }
 
-type TxManagerGormV2 interface {
-	WithTransaction(ctx context.Context, txfn TxFn) error
-}
-
 type GormTxManager struct {
 	db *gorm.DB
 }
@@ -34,7 +30,7 @@ func StartTxManager(db *gorm.DB) TxManager {
 }
 
 // NewGormTxManager create TxManagerGormV2 with dbv2
-func NewGormTxManager(db *gormv2.DB) TxManagerGormV2 {
+func NewGormTxManager(db *gormv2.DB) TxManager {
 	return &GormV2TxManager{db: db}
 }
 
