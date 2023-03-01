@@ -42,6 +42,7 @@ func (g *GormTxManager) WithTransaction(parentCtx context.Context, txfn TxFn) (e
 
 	isCtxCancelled := false
 	goroutineChannel := make(chan bool)
+	defer close(goroutineChannel)
 	go func() {
 		select {
 		case <-txCtx.Done():
@@ -61,6 +62,10 @@ func (g *GormTxManager) WithTransaction(parentCtx context.Context, txfn TxFn) (e
 		} else if err != nil || isCtxCancelled {
 			// error occurred, rollback
 			tx.Rollback()
+			if err == nil {
+				err = errors.New("context cancelled")
+			}
+			return
 		} else {
 			// all good, commit
 			err = tx.Commit().Error
