@@ -40,19 +40,32 @@ func (g *GormTxManager) WithTransaction(parentCtx context.Context, txfn TxFn) (e
 	tx := g.db.Begin()
 	txCtx := setTxConn(parentCtx, tx)
 
+	isCtxCancelled := false
+	goroutineChannel := make(chan bool)
+	go func() {
+		select {
+		case <-txCtx.Done():
+			isCtxCancelled = true
+		case <-goroutineChannel:
+			// to kill goroutine if transaction finished
+			break
+		}
+	}()
+
 	defer func() {
 		if p := recover(); p != nil {
 			// a panic occurred, rollback and repanic
 			tx.Rollback()
 			logrus.Error(p)
 			err = errors.New("panic happened because: " + fmt.Sprintf("%v", p))
-		} else if err != nil {
+		} else if err != nil || isCtxCancelled {
 			// error occurred, rollback
 			tx.Rollback()
 		} else {
 			// all good, commit
 			err = tx.Commit().Error
 		}
+		goroutineChannel <- true
 	}()
 
 	err = txfn(txCtx)
