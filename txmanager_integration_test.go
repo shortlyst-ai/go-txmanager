@@ -2,6 +2,7 @@ package txmanager_test
 
 import (
 	"context"
+	"sync"
 	"testing"
 
 	"github.com/jinzhu/gorm"
@@ -188,6 +189,51 @@ func TestTxManager_WithTransaction(t *testing.T) {
 		err = db.Model(&book{}).Find(&bookResult, "name = ?", "Biology").Error
 		require.Error(t, err)
 		require.Nil(t, bookResult.ID)
+	})
+
+	t.Run("ReturnError_WhenContextCancel", func(t *testing.T) {
+		// reset db after test
+		defer func(db *gorm.DB) {
+			err := resetDB(db)
+			require.NoError(t, err)
+		}(db)
+
+		// start TxManager
+		txManager := txmanager.StartTxManager(db)
+		ctx, cancel := context.WithCancel(context.Background())
+
+		// doing transaction, add author & book, and then link the author and book
+		transaction := func(ctx context.Context) error {
+			authorSaved, err := repoAuthor.AddAuthor(ctx, author1)
+			if err != nil {
+				return err
+			}
+
+			bookSaved, err := repoBook.AddBook(ctx, book1)
+			if err != nil {
+				return err
+			}
+
+			_, err = repo.LinkAuthorBook(ctx, *authorSaved, *bookSaved)
+			if err != nil {
+				return err
+			}
+
+			return nil
+		}
+
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			err := txManager.WithTransaction(ctx, transaction)
+			wg.Done()
+
+			// Expectation
+			require.Error(t, err)
+		}()
+
+		cancel()
+		wg.Wait()
 	})
 
 	t.Run("AcrossRepoV2Tx_Success", func(t *testing.T) {
