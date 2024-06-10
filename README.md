@@ -1,5 +1,5 @@
 # go-txmanager
-Transaction Manager with gorm currently only support for gorm v1
+Transaction Manager with gorm. Supports gorm v1 and v2.
 
 ## How To Use
 
@@ -52,7 +52,20 @@ err := txManager.WithTransaction(context, transaction)
 also you can find the example on `txmanager_integration_test.go`
 
 ## Testing
-You need mysql running and have database, you can set your connection on `.env.testing`
 
 ### Run Test
-Run command `make test`
+Run the following command to start the local test mysql 
+```
+$ make test-infra-up
+```
+
+Run the test
+```
+$ make test
+```
+
+Stop the test mysql when finish testing
+```
+$ make test-infra-down
+```
+
