@@ -3,6 +3,7 @@ package txmanager_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/jinzhu/gorm"
 	"github.com/shortlyst-ai/go-txmanager"
@@ -361,20 +362,23 @@ func TestTxManager_WithTransaction(t *testing.T) {
 		// doing transaction, add author & book, and then link the author and book
 		transaction := func(ctx context.Context) error {
 			authorSaved, err := repoAuthor.AddAuthor(ctx, author1)
+			require.NoError(t, err)
 			if err != nil {
 				return err
 			}
 
 			bookSaved, err := repoBook.AddBook(ctx, book1)
+			require.NoError(t, err)
 			if err != nil {
 				return err
 			}
 
 			_, err = repo.LinkAuthorBook(ctx, *authorSaved, *bookSaved)
+			require.NoError(t, err)
 			if err != nil {
 				return err
 			}
-
+			time.Sleep(2 * time.Second)
 			return nil
 		}
 
@@ -385,6 +389,7 @@ func TestTxManager_WithTransaction(t *testing.T) {
 			require.Error(t, err)
 			require.Equal(t, err.Error(), "context canceled")
 		}()
+		time.Sleep(1 * time.Second)
 		cancel()
 
 		// validate data
@@ -414,20 +419,23 @@ func TestTxManager_WithTransaction(t *testing.T) {
 		// doing transaction, add author & book, and then link the author and book
 		transaction := func(ctx context.Context) error {
 			authorSaved, err := repoAuthor.AddAuthorV2(ctx, author1)
+			require.NoError(t, err)
 			if err != nil {
 				return err
 			}
 
 			bookSaved, err := repoBook.AddBookV2(ctx, book1)
+			require.NoError(t, err)
 			if err != nil {
 				return err
 			}
 
 			_, err = repo.LinkAuthorBookV2(ctx, *authorSaved, *bookSaved)
+			require.NoError(t, err)
 			if err != nil {
 				return err
 			}
-
+			time.Sleep(2 * time.Second)
 			return nil
 		}
 
@@ -438,6 +446,7 @@ func TestTxManager_WithTransaction(t *testing.T) {
 			require.Error(t, err)
 			require.Equal(t, err.Error(), "context canceled")
 		}()
+		time.Sleep(1 * time.Second)
 		cancel()
 
 		// validate data
