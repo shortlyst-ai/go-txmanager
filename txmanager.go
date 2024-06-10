@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"runtime"
 
 	"github.com/jinzhu/gorm"
 	"github.com/sirupsen/logrus"
@@ -44,8 +45,8 @@ func (g *GormTxManager) WithTransaction(parentCtx context.Context, txfn TxFn) (e
 		if p := recover(); p != nil {
 			// a panic occurred, rollback and repanic
 			tx.Rollback()
-			logrus.Error(p)
-			err = errors.New("panic happened because: " + fmt.Sprintf("%v", p))
+			logrus.Errorf("stack trace: %s", printStackTrace())
+			err = fmt.Errorf("panic recovered: %v", p)
 		} else if err != nil {
 			// error occurred, rollback
 			tx.Rollback()
@@ -55,8 +56,27 @@ func (g *GormTxManager) WithTransaction(parentCtx context.Context, txfn TxFn) (e
 		}
 	}()
 
-	err = txfn(txCtx)
-	return err
+	//execute txfn in background and communicates errors through a channel
+	errCh := make(chan error)
+	go func() {
+		var errFunc error
+		defer func() {
+			if p := recover(); p != nil {
+				logrus.Errorf("stack trace: %s", printStackTrace())
+				errFunc = fmt.Errorf("panic recovered: %v", p)
+			}
+			errCh <- errFunc
+		}()
+		errFunc = txfn(txCtx)
+	}()
+
+	//wait for context cancelled or fn is success(err=nil) or failed(err=!nil)
+	select {
+	case <-parentCtx.Done():
+		return parentCtx.Err()
+	case err := <-errCh:
+		return err
+	}
 }
 
 func (g *GormV2TxManager) WithTransaction(parentCtx context.Context, txfn TxFn) (err error) {
@@ -67,8 +87,8 @@ func (g *GormV2TxManager) WithTransaction(parentCtx context.Context, txfn TxFn) 
 		if p := recover(); p != nil {
 			// a panic occurred, rollback and repanic
 			tx.Rollback()
-			logrus.Error(p)
-			err = errors.New("panic happened because: " + fmt.Sprintf("%v", p))
+			logrus.Errorf("stack trace: %s", printStackTrace())
+			err = errors.New("panic recovered: " + fmt.Sprintf("%v", p))
 		} else if err != nil {
 			// error occurred, rollback
 			tx.Rollback()
@@ -78,6 +98,31 @@ func (g *GormV2TxManager) WithTransaction(parentCtx context.Context, txfn TxFn) 
 		}
 	}()
 
-	err = txfn(txCtx)
-	return err
+	//execute txfn in background and communicates errors through a channel
+	errCh := make(chan error)
+	go func() {
+		var errFunc error
+		defer func() {
+			if p := recover(); p != nil {
+				logrus.Errorf("stack trace: %s", printStackTrace())
+				errFunc = fmt.Errorf("panic recovered: %v", p)
+			}
+			errCh <- errFunc
+		}()
+		errFunc = txfn(txCtx)
+	}()
+
+	//wait for context cancelled or fn is success(err=nil) or failed(err=!nil)
+	select {
+	case <-parentCtx.Done():
+		return parentCtx.Err()
+	case err := <-errCh:
+		return err
+	}
+}
+
+func printStackTrace() string {
+	buf := make([]byte, 1024)
+	n := runtime.Stack(buf, false)
+	return string(buf[:n])
 }
